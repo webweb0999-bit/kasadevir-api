@@ -89,11 +89,22 @@ def vardiyalar_listele():
         tarih = request.args.get("tarih")
         durum = request.args.get("durum")
         limit = int(request.args.get("limit", 500))
+        tarih_gte = request.args.get("tarih_gte")
+        tarih_lte = request.args.get("tarih_lte")
+        order     = request.args.get("order", "id.desc")
         q = "SELECT * FROM vardiyalar WHERE 1=1"
         p = []
         if tarih: q += " AND tarih=%s"; p.append(tarih)
         if durum: q += " AND durum=%s"; p.append(durum)
-        q += " ORDER BY id DESC LIMIT %s"; p.append(limit)
+        if tarih_gte: q += " AND tarih>=%s"; p.append(tarih_gte)
+        if tarih_lte: q += " AND tarih<=%s"; p.append(tarih_lte)
+        # order parametresi
+        order_col = "id"; order_dir = "DESC"
+        if "." in order:
+            parts = order.split(".")
+            order_col = parts[0].replace("local_id","id")
+            order_dir = "ASC" if parts[-1].lower()=="asc" else "DESC"
+        q += " ORDER BY {} {} LIMIT %s".format(order_col, order_dir); p.append(limit)
         cur.execute(q, p)
         rows = rows_to_dict(cur); conn.close()
         return jsonify(rows)
@@ -163,10 +174,16 @@ def giderler_listele():
         conn = get_db(); cur = conn.cursor()
         vid   = request.args.get("vardiya_id")
         limit = int(request.args.get("limit", 300))
+        order = request.args.get("order", "id.asc")
+        order_col = "id"; order_dir = "ASC"
+        if "." in order:
+            parts = order.split(".")
+            order_col = parts[0]
+            order_dir = "ASC" if parts[-1].lower()=="asc" else "DESC"
         if vid:
-            cur.execute("SELECT * FROM giderler WHERE vardiya_id=%s ORDER BY id", (int(vid),))
+            cur.execute("SELECT * FROM giderler WHERE vardiya_id=%s ORDER BY {} {}".format(order_col, order_dir), (int(vid),))
         else:
-            cur.execute("SELECT * FROM giderler ORDER BY id DESC LIMIT %s", (limit,))
+            cur.execute("SELECT * FROM giderler ORDER BY {} {} LIMIT %s".format(order_col, order_dir), (limit,))
         rows = rows_to_dict(cur); conn.close()
         return jsonify(rows)
     except Exception as e:
