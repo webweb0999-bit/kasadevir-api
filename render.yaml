@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: kasadevir-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kasadevir-db
+          property: connectionString
+      - key: API_KEY
+        value: kasadevir_2024_EK_gizli_anahtar
